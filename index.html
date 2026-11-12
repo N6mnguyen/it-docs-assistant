@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    color-scheme: light;
+    --blue: #2563eb;
+    --blue-dark: #1d4ed8;
+    --text: #1c2940;
+    --muted: #69778d;
+    --line: #e8edf5;
+    --surface: #f5f7fb;
+  }
+  * { box-sizing: border-box; font-family: "Segoe UI", sans-serif; }
+  html, body { margin: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; }
+  #bubble {
+    position: absolute; right: 0; bottom: 0; width: 64px; height: 64px;
+    padding: 0; border: none; border-radius: 50%; cursor: grab; touch-action: none;
+    user-select: none;
+    background: transparent; filter: drop-shadow(0 5px 9px rgba(21,48,100,.32));
+    transition: transform .16s ease, filter .16s ease;
+  }
+  #bubble:hover { transform: scale(1.06); filter: drop-shadow(0 7px 12px rgba(21,48,100,.4)); }
+  #bubble.dragging { cursor: grabbing; transform: scale(1.08); }
+  #bubble img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; -webkit-user-drag: none; }
+  #panel {
+    display: none; position: absolute; inset: 0;
+    background: var(--surface); border: 1px solid rgba(220,227,238,.95); border-radius: 20px;
+    box-shadow: 0 16px 42px rgba(24,39,75,.2);
+    flex-direction: column; overflow: hidden;
+  }
+  body.open #panel { display: flex; }
+  body.open #bubble { display: none; }
+  header {
+    min-height: 58px; padding: 0 14px 0 18px; display: flex; align-items: center;
+    justify-content: space-between; gap: 8px;
+    background: linear-gradient(112deg, #2463e9 0%, #3979f5 100%); color: #fff;
+    user-select: none; -webkit-app-region: drag; cursor: grab;
+  }
+  .header-actions, .header-actions button { -webkit-app-region: no-drag; }
+  .title { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 16px; font-weight: 700; white-space: nowrap; letter-spacing: -.2px; }
+  .title img { width: 34px; height: 34px; object-fit: contain; }
+  .header-actions { display: flex; align-items: center; gap: 5px; }
+  .header-actions button {
+    width: 32px; height: 32px; border: 0; border-radius: 9px; background: transparent;
+    color: #fff; cursor: pointer; transition: background .15s ease;
+  }
+  .header-actions button:hover { background: rgba(255,255,255,.16); }
+  #hideBtn, #quitBtn { padding: 0; font-size: 20px; line-height: 1; }
+  #quitBtn:hover { background: #dc3545; }
+  #results { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; scrollbar-color: #c4cedc transparent; scrollbar-width: thin; }
+  .welcome {
+    padding: 18px; border: 1px solid #e4ebff; border-radius: 17px;
+    background: linear-gradient(135deg, #fff 0%, #f0f5ff 100%);
+    box-shadow: 0 5px 18px rgba(48,88,160,.06);
+  }
+  .welcome-top { display: flex; align-items: center; gap: 13px; }
+  .welcome-avatar {
+    display: grid; place-items: center; width: 58px; height: 58px; flex: 0 0 58px;
+    border: 1px solid #e4ebff; border-radius: 17px; background: #fff;
+    box-shadow: 0 5px 12px rgba(48,88,160,.1);
+  }
+  .welcome-avatar img { width: 46px; height: 46px; object-fit: contain; }
+  .welcome-kicker { margin-bottom: 3px; color: var(--blue); font-size: 10px; font-weight: 750; letter-spacing: 1px; }
+  .welcome h1 { margin: 0; color: var(--text); font-size: 20px; font-weight: 700; letter-spacing: -.45px; }
+  .welcome-copy { margin: 14px 0 18px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+  .quick-title { margin-bottom: 9px; color: #44516a; font-size: 12px; font-weight: 700; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chips button {
+    padding: 7px 11px; border: 1px solid #dfe7f7; border-radius: 20px;
+    background: #fff; color: #3d5f9e; font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: border-color .15s ease, background .15s ease, transform .15s ease;
+  }
+  .chips button:hover { transform: translateY(-1px); border-color: #a9c1fa; background: #f5f8ff; }
+  .welcome-tip {
+    display: flex; align-items: center; gap: 8px; margin-top: 16px; padding-top: 13px;
+    border-top: 1px solid #e7edf8; color: #7a879b; font-size: 11px; line-height: 1.4;
+  }
+  .tip-icon { color: #f3a83b; font-size: 15px; }
+  .results-heading { display: flex; align-items: end; justify-content: space-between; gap: 8px; margin: 1px 3px 11px; }
+  .results-heading strong { color: var(--text); font-size: 15px; font-weight: 700; }
+  .results-heading span { color: #8591a4; font-size: 11px; }
+  .hint {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 190px; padding: 24px; color: var(--muted); font-size: 13px;
+    line-height: 1.55; text-align: center; overflow-wrap: anywhere;
+  }
+  .empty-icon {
+    display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 12px;
+    border-radius: 17px; background: #eaf0ff; color: var(--blue); font-size: 24px;
+  }
+  .hint strong { margin-bottom: 4px; color: var(--text); font-size: 15px; }
+  .folder-hint { min-height: 120px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: #fff; text-align: left; }
+  .folder-hint strong { align-self: stretch; }
+  .card {
+    padding: 13px 14px; margin-bottom: 9px; border: 1px solid var(--line);
+    border-radius: 14px; background: #fff; box-shadow: 0 2px 7px rgba(23,32,51,.035);
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .card:hover { border-color: #c5d5f7; box-shadow: 0 4px 12px rgba(23,32,51,.07); }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .card .name { font-weight: 650; font-size: 14px; color: var(--text); line-height: 1.45; word-break: break-word; }
+  .file-tag { flex: 0 0 auto; padding: 4px 7px; border-radius: 6px; background: #eff4ff; color: #5074bd; font-size: 9px; font-weight: 750; letter-spacing: .35px; }
+  .card .snip { margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .btns { margin-top: 11px; }
+  .btns button { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 0; border-radius: 9px; background: var(--blue); color: #fff; font-size: 12px; font-weight: 650; cursor: pointer; transition: background .15s ease, transform .15s ease; }
+  .btns button:hover { background: var(--blue-dark); transform: translateY(-1px); }
+  .search-area { padding: 10px 14px 13px; border-top: 1px solid var(--line); background: #fff; transition: opacity .2s ease; }
+  .search-caption { margin: 0 0 7px 3px; color: #8290a5; font-size: 10px; font-weight: 750; letter-spacing: .8px; }
+  form { display: flex; gap: 9px; }
+  body.has-results .search-area { opacity: .56; }
+  body.has-results .search-area:focus-within { opacity: 1; }
+  .search-box {
+    display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1;
+    padding: 0 12px; border: 1px solid #dfe5ef; border-radius: 12px; background: #f9fafc;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .search-box:focus-within { border-color: var(--blue); background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,.11); }
+  .search-box svg { flex: 0 0 auto; color: #98a4b7; }
+  input { min-width: 0; width: 100%; padding: 12px 0; border: 0; background: transparent; color: var(--text); font-size: 14px; outline: none; }
+  input::placeholder { color: #9aa4b2; }
+  form button { min-width: 76px; padding: 0 17px; border: none; border-radius: 11px; background: var(--blue); color: #fff; cursor: pointer; font-size: 13px; font-weight: 700; transition: background .15s ease, transform .15s ease; }
+  form button:hover { background: var(--blue-dark); }
+  form button:active { transform: scale(.97); }
+</style>
+</head>
+<body>
+  <div id="panel">
+    <header>
+      <div class="title"><img src="assets/logo.png" alt="">Trợ lý hướng dẫn</div>
+      <div class="header-actions">
+        <button id="hideBtn" type="button" title="Ẩn trợ lý" aria-label="Ẩn trợ lý">−</button>
+        <button id="quitBtn" type="button" title="Thoát" aria-label="Thoát">×</button>
+      </div>
+    </header>
+    <div id="results">
+      <section class="welcome">
+        <div class="welcome-top">
+          <div class="welcome-avatar"><img src="assets/logo.png" alt=""></div>
+          <div><div class="welcome-kicker">TRỢ LÝ TÀI LIỆU</div><h1>Xin chào! 👋</h1></div>
+        </div>
+        <p class="welcome-copy">Mình có thể giúp bạn tìm nhanh tài liệu hướng dẫn cần thiết.</p>
+        <div class="quick-title">Bạn muốn tìm gì?</div>
+        <div class="chips">
+          <button type="button" data-query="cài win">Cài đặt Windows</button>
+          <button type="button" data-query="cấp thiết bị">Cấp thiết bị</button>
+          <button type="button" data-query="hướng dẫn">Xem tài liệu</button>
+        </div>
+        <div class="welcome-tip"><span class="tip-icon">✦</span><span>Nhập từ khóa bên dưới hoặc chọn một gợi ý nhé.</span></div>
+      </section>
+    </div>
+    <div class="search-area">
+      <div class="search-caption">TÌM KIẾM TÀI LIỆU</div>
+      <form id="form">
+        <label class="search-box" for="q">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"></circle>
+            <path d="m16 16 4.2 4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+          <input id="q" placeholder="Ví dụ: cài win, cấp thiết bị..." autocomplete="off">
+        </label>
+        <button type="submit">Tìm kiếm</button>
+      </form>
+    </div>
+  </div>
+  <button id="bubble" title="Kéo để di chuyển · Bấm để mở trợ lý" aria-label="Kéo để di chuyển hoặc bấm để mở trợ lý">
+    <img src="assets/logo.png" alt="" draggable="false">
+  </button>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const results = $('results');
+let dragState = null;
+let suppressBubbleClickUntil = 0;
+
+function startWindowDrag(event) {
+  if (event.button !== 0) return;
+  const handle = $('bubble');
+  dragState = {
+    pointerId: event.pointerId,
+    startX: event.screenX,
+    startY: event.screenY,
+    windowX: window.screenX,
+    windowY: window.screenY,
+    moved: false,
+    handle
+  };
+  handle.setPointerCapture(event.pointerId);
+}
+
+function moveWindowDrag(event) {
+  if (!dragState || event.pointerId !== dragState.pointerId) return;
+  const dx = event.screenX - dragState.startX;
+  const dy = event.screenY - dragState.startY;
+  if (!dragState.moved && Math.hypot(dx, dy) < 5) return;
+  dragState.moved = true;
+  dragState.handle.classList.add('dragging');
+  api.moveWindow(dragState.windowX + dx, dragState.windowY + dy);
+}
+
+function endWindowDrag(event) {
+  if (!dragState || event.pointerId !== dragState.pointerId) return;
+  const x = dragState.windowX + event.screenX - dragState.startX;
+  const y = dragState.windowY + event.screenY - dragState.startY;
+  if (dragState.moved && dragState.handle === $('bubble')) {
+    suppressBubbleClickUntil = performance.now() + 300;
+  }
+  dragState.handle.classList.remove('dragging');
+  if (dragState.moved) api.moveWindow(x, y, true);
+  if (dragState.handle.hasPointerCapture(event.pointerId)) {
+    dragState.handle.releasePointerCapture(event.pointerId);
+  }
+  dragState = null;
+}
+
+$('bubble').addEventListener('pointerdown', startWindowDrag);
+$('bubble').addEventListener('pointermove', moveWindowDrag);
+$('bubble').addEventListener('pointerup', endWindowDrag);
+$('bubble').addEventListener('pointercancel', endWindowDrag);
+
+$('bubble').onclick = async () => {
+  if (performance.now() < suppressBubbleClickUntil) return;
+  const open = await api.toggle();
+  document.body.classList.toggle('open', open);
+  if (open) $('q').focus();
+};
+$('hideBtn').onclick = async () => {
+  const open = await api.toggle();
+  document.body.classList.toggle('open', open);
+};
+$('quitBtn').onclick = () => api.quit();
+$('results').addEventListener('click', (event) => {
+  const chip = event.target.closest('[data-query]');
+  if (!chip) return;
+  $('q').value = chip.dataset.query;
+  $('form').requestSubmit();
+});
+
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+function markResultsShown() {
+  document.body.classList.add('has-results');
+  $('q').blur();
+}
+
+$('form').onsubmit = async (e) => {
+  e.preventDefault();
+  const q = $('q').value.trim();
+  if (!q) return;
+  const r = await api.search(q);
+  if (!r.total) {
+    results.innerHTML = '<div class="hint"><div class="empty-icon">📂</div><strong>Chưa có tài liệu nào</strong><span>Liên hệ IT để bổ sung tài liệu hướng dẫn nhé.</span></div>';
+    markResultsShown();
+    return;
+  }
+  if (!r.results.length) {
+    results.innerHTML = '<div class="hint"><div class="empty-icon">⌕</div><strong>Chưa tìm thấy tài liệu phù hợp</strong><span>Thử từ khóa khác với câu hỏi: “' + esc(q) + '”</span></div>';
+    markResultsShown();
+    return;
+  }
+  results.innerHTML = r.help
+    ? '<div class="results-heading"><strong>Tài liệu dành cho bạn</strong><span>' + r.results.length + ' tài liệu</span></div>'
+    : '<div class="results-heading"><strong>Kết quả tìm kiếm</strong><span>' + r.results.length + ' tài liệu phù hợp</span></div>';
+  r.results.forEach((d) => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    const fileName = d.path.split(/[\\/]/).pop();
+    const ext = fileName.includes('.') ? fileName.split('.').pop().slice(0, 5).toUpperCase() : 'FILE';
+    div.innerHTML =
+      '<div class="card-top"><div class="name">' + esc(d.name) + '</div><span class="file-tag">' + esc(ext) + '</span></div>' +
+      (d.snippet ? '<div class="snip">' + esc(d.snippet) + '…</div>' : '') +
+      '<div class="btns"><button class="primary"><span>Tải tài liệu</span><span aria-hidden="true">↓</span></button></div>';
+    const b = div.querySelector('button');
+    b.onclick = async () => { const f = await api.download(d.path); if (f) b.textContent = 'Đã lưu ✓'; };
+    results.appendChild(div);
+  });
+  markResultsShown();
+};
+</script>
+</body>
+</html>

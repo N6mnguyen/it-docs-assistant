@@ -1,0 +1,46 @@
+{
+  "name": "agent-goc-man-hinh",
+  "version": "1.0.0",
+  "description": "Tro ly noi o goc man hinh de tim tai lieu huong dan",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "rcedit": "^5.0.2"
+  },
+  "build": {
+    "appId": "com.congty.trolygocmanhinh",
+    "productName": "TroLyTaiLieu",
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "assets/**"
+    ],
+    "extraFiles": [
+      {
+        "from": "docs",
+        "to": "docs"
+      }
+    ],
+    "compression": "maximum",
+    "electronLanguages": ["vi", "en-US"],
+    "asar": true,
+    "afterPack": "afterPack.js",
+    "win": {
+      "target": "nsis",
+      "icon": "assets/logo.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

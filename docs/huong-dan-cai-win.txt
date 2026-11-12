@@ -1,0 +1,5 @@
+HUONG DAN CAI WIN
+1. Chuan bi USB boot Windows 11.
+2. Khoi dong lai, bam F12 chon USB.
+3. Chon o dia, cai dat, nhap key ban quyen.
+4. Cai driver, Office, phan mem cong ty.

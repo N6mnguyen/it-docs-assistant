@@ -1,0 +1,16 @@
+TRO LY GOC MAN HINH - HUONG DAN SU DUNG
+
+1. Cai Node.js (neu chua co): https://nodejs.org (ban LTS)
+2. Giai nen thu muc nay, bam dup vao chay.bat (lan dau se cai dat vai phut).
+3. Icon tron mau xanh se hien o goc phai duoi man hinh. Bam vao de hoi.
+4. Bam "Thu muc" tren thanh tieu de de chon thu muc chua file huong dan (PDF, Word, txt...).
+   Bam nut "−" de an tro ly; bam "×" de thoat ung dung.
+   Hoac bo file vao thu muc "docs" nam canh chay.bat.
+
+Muon tim chinh xac hon: tao file docs.json trong thu muc tai lieu:
+[
+  { "file": "cai-dat.pdf", "title": "Huong dan cai dat", "keywords": "cai dat, install, setup" },
+  { "file": "dang-nhap.docx", "title": "Cach dang nhap", "keywords": "dang nhap, login, mat khau" }
+]
+
+Luu y: file .txt va .md duoc tim ca trong noi dung. PDF/Word chi tim theo ten file va keywords trong docs.json.
